@@ -35,18 +35,15 @@ class GoogleShoppingScraper:
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         
     def human_like_typing(self, element, text):
-        """Digitar como um humano, com pausas aleatórias entre caracteres"""
         for char in text:
             element.send_keys(char)
             # Pausa aleatória entre 0.05 e 0.2 segundos
             time.sleep(random.uniform(0.05, 0.2))
     
     def random_sleep(self, min_seconds=2, max_seconds=5):
-        """Esperar um tempo aleatório para simular comportamento humano"""
         time.sleep(random.uniform(min_seconds, max_seconds))
     
     def search_product(self, product_name):
-        """Search for a product on Google Shopping"""
         try:
             # Abrir o Google diretamente, não o Google Shopping (menos suspeito)
             print("Navegando até o Google...")
@@ -68,7 +65,6 @@ class GoogleShoppingScraper:
             self.random_sleep(1, 3)
             
             # Encontrar o campo de busca do Google
-            print("Procurando campo de busca...")
             search_box = None
             
             # Tentar múltiplos seletores para o campo de busca
@@ -78,7 +74,6 @@ class GoogleShoppingScraper:
                     search_box = WebDriverWait(self.driver, 3).until(
                         EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                     )
-                    print(f"Campo de busca encontrado com seletor: {selector}")
                     break
                 except:
                     continue
@@ -96,7 +91,6 @@ class GoogleShoppingScraper:
             
             # Usar apenas o nome do produto como termo de busca
             search_term = product_name
-            print(f"Digitando o termo de busca: {search_term}")
             
             # Digitar como humano, com pausas entre caracteres
             self.human_like_typing(search_box, search_term)
@@ -106,26 +100,15 @@ class GoogleShoppingScraper:
             # Pressionar Enter para pesquisar
             search_box.send_keys(Keys.RETURN)
             
-            # Esperar que os resultados carreguem
-            print("Aguardando carregamento dos resultados...")
             self.random_sleep(3, 5)
             
-            # Salvar screenshot para debug
-            self.driver.save_screenshot("google_results.png")
-            print("Screenshot salvo como google_results.png")
-            
             # Clicar na aba Shopping usando o seletor específico
-            print("Tentando clicar na aba Shopping com o seletor específico...")
             try:
-                # Primeiro tentar o seletor específico fornecido
                 shopping_tab = WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, "#hdtb-sc > div > div > div.crJ18e > div > div:nth-child(3) > a > div"))
                 )
-                print("Aba Shopping encontrada com o seletor específico!")
                 shopping_tab.click()
             except Exception as e:
-                print(f"Não foi possível encontrar a aba Shopping com o seletor específico: {e}")
-                print("Tentando seletores alternativos...")
                 
                 # Lista de seletores alternativos para a aba Shopping
                 alternative_selectors = [
@@ -140,16 +123,15 @@ class GoogleShoppingScraper:
                 for selector in alternative_selectors:
                     try:
                         if selector.startswith("//"):
-                            # Usando XPath
+                            # xpath
                             element = WebDriverWait(self.driver, 5).until(
                                 EC.element_to_be_clickable((By.XPATH, selector))
                             )
                         else:
-                            # Usando CSS Selector
+                            # CSS Selector
                             element = WebDriverWait(self.driver, 5).until(
                                 EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
                             )
-                        print(f"Aba Shopping encontrada com seletor alternativo: {selector}")
                         element.click()
                         found = True
                         break
@@ -157,92 +139,59 @@ class GoogleShoppingScraper:
                         continue
                 
                 if not found:
-                    print("Não foi possível encontrar a aba Shopping. Tentando continuar com os resultados atuais.")
+                    print("Não foi possível encontrar a aba Shopping.")
             
             # Esperar que a página do Shopping carregue
             self.random_sleep(3, 5)
             
-            # Salvar screenshot dos resultados
-            self.driver.save_screenshot("shopping_results.png")
-            print("Screenshot dos resultados do Shopping salvo como shopping_results.png")
-            
             # Se ainda precisar verificar CAPTCHA, pausar para interação manual
             if "captcha" in self.driver.page_source.lower() or "não sou um robô" in self.driver.page_source.lower():
-                print("\n======== ATENÇÃO! ========")
-                print("CAPTCHA detectado! Por favor, complete manualmente o CAPTCHA na janela do navegador.")
-                print("Após completar o CAPTCHA, pressione ENTER neste console para continuar.")
-                self.driver.save_screenshot("captcha_detected.png")
-                input("Pressione ENTER após completar o CAPTCHA: ")
                 self.random_sleep(2, 3)
             
             # Extrair informações dos produtos
             return self.extract_product_info()
             
         except Exception as e:
-            print(f"Erro durante a busca: {e}")
-            self.driver.save_screenshot("error_screenshot.png")
-            print("Screenshot do erro salvo como error_screenshot.png")
             return []
     
     def extract_product_info(self):
-        """Extract product information from search results"""
-        try:
-            print("Extraindo informações dos produtos...")
-            
+        try:            
             # Esperar que a página carregue completamente
-            print("Aguardando carregamento completo da página de resultados...")
             self.random_sleep(4, 6)
             
-            # Salvar screenshot atual para verificar o estado da página
-            self.driver.save_screenshot("before_extraction.png")
-            print("Screenshot atual salvo como before_extraction.png")
-            
-            # Salvar HTML para análise detalhada
-            with open("shopping_page.html", "w", encoding="utf-8") as f:
-                f.write(self.driver.page_source)
-            print("HTML da página salvo como shopping_page.html para análise")
             
             # Começar com o seletor específico mencionado
-            print("Tentando o seletor específico #bGmlqc > div > div > div > div")
             results = []
             
             try:
-                # Esperar explicitamente que os elementos apareçam
                 WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "#bGmlqc > div > div > div > div"))
                 )
                 
                 elements = self.driver.find_elements(By.CSS_SELECTOR, "#bGmlqc > div > div > div > div")
                 if elements:
-                    print(f"Encontrados {len(elements)} elementos com o seletor específico")
                     for element in elements:
                         try:
                             text_content = element.text.strip()
                             if text_content:
                                 results.append(text_content)
-                                print(f"Conteúdo encontrado: {text_content[:50]}...")
                         except Exception as e:
-                            print(f"Erro ao extrair texto: {e}")
                             continue
             except Exception as e:
                 print(f"Erro ao usar o seletor específico: {e}")
             
-            # Tentar o seletor vplap mais específico se solicitado
             if not results:
                 try:
-                    print("Tentando o seletor #vplap...")
                     vplap_elements = self.driver.find_elements(By.CSS_SELECTOR, "[id^='vplap_']")
                     for element in vplap_elements:
                         text_content = element.text.strip()
                         if text_content:
                             results.append(text_content)
-                            print(f"Conteúdo encontrado em vplap: {text_content[:50]}...")
                 except Exception as e:
                     print(f"Erro ao usar o seletor vplap: {e}")
             
-            # Seletores mais específicos para Google Shopping
+            # Seletores possíveis para Google Shopping
             if not results:
-                print("Tentando seletores específicos para Google Shopping...")
                 shopping_selectors = [
                     ".sh-dlr__list-result",
                     ".sh-dgr__grid-result",
@@ -270,43 +219,36 @@ class GoogleShoppingScraper:
                         print(f"Erro ao usar seletor {selector}: {e}")
                         continue
             
-            # Tentar capturar elementos de produto usando XPath mais genérico
             if not results:
                 print("Tentando XPath para encontrar elementos de produto...")
                 try:
-                    # XPath para elementos que parecem ser itens de produto
                     product_elements = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'sh-') and .//a[contains(@href, '/shopping/product')]]")
                     for element in product_elements:
                         text_content = element.text.strip()
                         if text_content:
                             results.append(text_content)
-                            print(f"Conteúdo encontrado via XPath: {text_content[:50]}...")
                 except Exception as e:
                     print(f"Erro ao usar XPath: {e}")
             
             # Tentar método de scrolling para garantir que todos os elementos estejam carregados
-            if not results or len(results) < 3:  # Se encontramos poucos resultados
-                print("Tentando scroll para carregar mais conteúdo...")
+            if not results or len(results) < 3: 
+                #print("Tentando scroll para carregar mais conteúdo...")
                 try:
-                    # Rolar a página para baixo para carregar elementos dinâmicos
                     for _ in range(3):
                         self.driver.execute_script("window.scrollBy(0, 500)")
                         self.random_sleep(1, 2)
                     
-                    # Tentar novamente após rolagem
                     elements = self.driver.find_elements(By.CSS_SELECTOR, "#bGmlqc > div > div > div > div")
                     if elements:
                         for element in elements:
                             text_content = element.text.strip()
                             if text_content and text_content not in results:
                                 results.append(text_content)
-                                print(f"Após scroll, conteúdo encontrado: {text_content[:50]}...")
+                                #print(f"Após scroll, conteúdo encontrado: {text_content[:50]}...")
                 except Exception as e:
                     print(f"Erro durante scrolling: {e}")
             
-            # Estratégia final: Coletar todos os textos visíveis
             if not results:
-                print("Última tentativa: coletando todos os textos visíveis na página")
                 try:
                     # Obter todos os elementos com texto
                     all_elements = self.driver.find_elements(By.XPATH, "//*[not(self::script or self::style)][string-length(normalize-space(text())) > 10]")
@@ -315,13 +257,13 @@ class GoogleShoppingScraper:
                             text = element.text.strip()
                             if text and len(text) > 15:  # Textos significativos
                                 results.append(text)
-                                print(f"Texto visível encontrado: {text[:50]}...")
+                                #print(f"Texto visível encontrado: {text[:50]}...")
                 except Exception as e:
                     print(f"Erro na coleta final de textos: {e}")
             
             # Se ainda não temos resultados, tentar acessar diretamente o primeiro produto
             if not results:
-                print("Tentando clicar no primeiro produto para obter detalhes...")
+                #print("Tentando clicar no primeiro produto para obter detalhes...")
                 try:
                     # Tentar clicar no primeiro produto
                     product_links = self.driver.find_elements(By.CSS_SELECTOR, "a[href*='/shopping/product']")
@@ -329,16 +271,13 @@ class GoogleShoppingScraper:
                         product_links[0].click()
                         self.random_sleep(3, 5)
                         
-                        # Salvar screenshot da página de detalhes
-                        self.driver.save_screenshot("product_details.png")
-                        
                         # Extrair informações da página de detalhes
                         details = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'product-')]")
                         for detail in details:
                             text = detail.text.strip()
                             if text:
                                 results.append(text)
-                                print(f"Detalhe de produto: {text[:50]}...")
+                                #print(f"Detalhe de produto: {text[:50]}...")
                 except Exception as e:
                     print(f"Erro ao acessar detalhes do produto: {e}")
             
@@ -353,17 +292,13 @@ class GoogleShoppingScraper:
             return cleaned_results
             
         except Exception as e:
-            print(f"Erro ao extrair informações dos produtos: {e}")
-            self.driver.save_screenshot("extraction_error.png")
-            print("Screenshot do erro salvo como extraction_error.png")
             return []
     
+    #função para: salvar os resultados em um arquivo de texto
     def save_to_file(self, product_name, results):
-        """Salva os resultados em um arquivo de texto, organizando os 4 melhores valores encontrados"""
         if not os.path.exists("results"):
             os.makedirs("results")
             
-        # Limpa o nome do produto para usar como nome de arquivo
         clean_name = re.sub(r'[\\/*?:"<>|]', "", product_name)
         clean_name = clean_name.replace(" ", "_")
         
@@ -374,48 +309,41 @@ class GoogleShoppingScraper:
         
         print("Processando resultados para extrair informações de preço...")
         
-        # Primeiro, vamos processar todo o texto bruto para encontrar padrões de preço
         texto_completo = "\n".join(results)
         
-        # Encontrar todos os padrões de preço no texto completo
-        # Buscar padrões como "R$ 123,45" ou mesmo "R$123.45"
+        # Encontrar padrao de preço no texto completo
         todos_precos = re.findall(r'R\$\s*(\d+[,.]\d+)', texto_completo)
         print(f"Encontrados {len(todos_precos)} padrões de preço no texto completo")
         
-        # Processar cada bloco de resultado separadamente
+        # Processar cada bloco de resultado 
         for result in results:
             try:
-                # Dividir o texto em linhas
                 linhas = result.strip().split('\n')
                 
-                # Se o bloco tiver menos de 2 linhas, é provavelmente um fragmento e não um produto completo
                 if len(linhas) < 2:
                     continue
                 
                 # Inicializar variáveis
                 nome_produto = ""
                 preco = ""
-                valor_numerico = 9999999  # Valor alto para caso não encontre preço
+                valor_numerico = 9999999  
                 loja = ""
                 
-                # Primeira linha geralmente é o nome do produto (exceto se for "Patrocinado")
                 if not linhas[0].startswith("Patrocinado"):
                     nome_produto = linhas[0]
                 elif len(linhas) > 1:
                     nome_produto = linhas[1]
                 
-                # Procurar por todas as linhas com preço
                 precos_encontrados = []
                 indices_precos = []
                 
                 for i, linha in enumerate(linhas):
-                    # Buscar padrão de preço na linha
                     if "R$" in linha:
                         preco_match = re.search(r'R\$\s*(\d+[,.]\d+)', linha)
                         if preco_match:
-                            # Extrair o valor numérico
+                            
                             valor_texto = preco_match.group(1)
-                            # Converter para float (substituindo , por .)
+                            
                             valor = float(valor_texto.replace('.', '').replace(',', '.'))
                             
                             precos_encontrados.append({
@@ -435,18 +363,10 @@ class GoogleShoppingScraper:
                 valor_numerico = menor_preco['valor']
                 indice_preco = menor_preco['indice']
                 
-                # Tentar encontrar a loja (geralmente é a linha após o preço)
+                # Tentar encontrar a o nome da loja 
                 if indice_preco + 1 < len(linhas) and "R$" not in linhas[indice_preco + 1]:
                     loja = linhas[indice_preco + 1]
                 
-                # Se ainda não temos uma loja, procurar em outras linhas
-                if not loja:
-                    for i, linha in enumerate(linhas):
-                        if i not in indices_precos and not linha.startswith("R$") and i > 0:
-                            # Excluir linhas que parecem ser informações do produto
-                            if not any(palavra in linha.lower() for palavra in ["promoção", "patrocinado", "frete"]):
-                                loja = linha
-                                break
                 
                 # Se encontramos as informações mínimas necessárias
                 if nome_produto and preco:
@@ -455,21 +375,17 @@ class GoogleShoppingScraper:
                         'preco': preco,
                         'loja': loja,
                         'valor_numerico': valor_numerico,
-                        'texto_original': result  # Manter o texto original para depuração
+                        'texto_original': result 
                     }
                     produtos_processados.append(produto)
                     print(f"Produto processado: {nome_produto} - {preco}")
             except Exception as e:
-                print(f"Erro ao processar um resultado: {e}")
+                
                 continue
+
         
-        # Depuração: mostrar produtos processados
-        print(f"Total de produtos processados: {len(produtos_processados)}")
-        
-        # Ordenar produtos pelo preço (do mais barato para o mais caro)
         produtos_ordenados = sorted(produtos_processados, key=lambda x: x['valor_numerico'])
         
-        # Pegar os 4 melhores preços (ou menos se não houver 4)
         melhores_produtos = produtos_ordenados[:min(4, len(produtos_ordenados))]
         
         with open(filename, "w", encoding="utf-8") as file:
@@ -488,8 +404,8 @@ class GoogleShoppingScraper:
                         file.write(f"Loja: {produto['loja']}\n")
                     file.write("\n" + "-" * 40 + "\n\n")
             
-            # Incluir todos os dados brutos no final do arquivo para referência
-            file.write("\nDADOS BRUTOS DE TODOS OS PRODUTOS ENCONTRADOS:\n")
+            #add resultados no txt
+            file.write("\nPRODUTOS ENCONTRADOS (dados brutos e sem tratamento q foram retirados da busca):\n")
             file.write("-" * 50 + "\n\n")
             
             for i, result in enumerate(results, 1):
@@ -499,34 +415,30 @@ class GoogleShoppingScraper:
         return filename
     
     def close(self):
-        """Close the browser"""
         if self.driver:
             self.driver.quit()
 
 
 def main():
-    # Get product name from user
-    product_name = input("Enter the product name to search: ")
+    product_name = input("informe o produto: ")
     
     if not product_name.strip():
-        print("Product name cannot be empty.")
+        print("nome do porduto n pode ser vazio.")
         return
     
-    # Initialize the scraper
+    # começa o scraper
     scraper = GoogleShoppingScraper()
     
     try:
-        print(f"Searching for: {product_name}")
+        print(f"Produto buscadoo: {product_name}")
         results = scraper.search_product(product_name)
         
         if results:
-            print(f"Found {len(results)} results.")
             filename = scraper.save_to_file(product_name, results)
-            print(f"Results saved to: {filename}")
+            print(f"Resultado salvo em: {filename}")
         else:
-            print("No results found.")
+            print("Nada encontrado.")
     finally:
-        # Always close the browser
         scraper.close()
 
 
