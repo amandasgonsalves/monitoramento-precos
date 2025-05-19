@@ -313,7 +313,6 @@ class GoogleShoppingScraper:
         
         # Encontrar padrao de preço no texto completo
         todos_precos = re.findall(r'R\$\s*(\d+[,.]\d+)', texto_completo)
-        print(f"Encontrados {len(todos_precos)} padrões de preço no texto completo")
         
         # Processar cada bloco de resultado 
         for result in results:
